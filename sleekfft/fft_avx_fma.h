@@ -15,7 +15,7 @@ namespace FFT_AVX_FMA {
 
     constexpr f64 PI = 3.141592653589793238462;
 
-    [[gnu::target("avx", "fma")]]
+    [[gnu::target("avx,fma")]]
     inline void reserve(f64 *&wr, f64 *&wi, usize &size, const usize k) {
         const usize m = 1ULL << (k - 1);
         if (size >= m) return;
@@ -36,7 +36,7 @@ namespace FFT_AVX_FMA {
         }
     }
 
-    [[gnu::target("avx", "fma")]]
+    [[gnu::target("avx,fma")]]
     inline void fft(const f64 *wr, const f64* wi, f64 *xr, f64 *xi, const usize k) {
         if (k == 1) {
             const f64 ur = xr[0], vr = xr[1];
@@ -121,7 +121,7 @@ namespace FFT_AVX_FMA {
         }
     }
 
-    [[gnu::target("avx", "fma")]]
+    [[gnu::target("avx,fma")]]
     inline void ifft(const f64 *wr, const f64* wi, f64 *xr, f64 *xi, const usize k) {
         if (k == 1) {
             const f64 ur = xr[0], vr = xr[1];
@@ -209,7 +209,7 @@ namespace FFT_AVX_FMA {
         }
     }
 
-    [[gnu::target("avx", "fma")]]
+    [[gnu::target("avx,fma")]]
     inline void cyclic_conv(const f64 *wr, const f64* wi, f64 *xr, f64 *xi, const usize k) {
         const usize m = 1ULL << k;
         fft(wr, wi, xr, xi, k);
@@ -218,7 +218,7 @@ namespace FFT_AVX_FMA {
         xr[0] = 0, xr[1] = 0;
         for (usize i = 2; i < m; i <<= 1) {
             for (usize p = i, pe = i << 1; p < pe; p += 2) {
-                const usize q = p xor (i - 1);
+                const usize q = p ^ (i - 1);
                 const f64 ur = xr[p] - xr[q], ui = xi[p] + xi[q];
                 const f64 vr = xr[p] + xr[q], vi = xi[p] - xi[q];
                 xr[p] = std::fma(ur, vr, -ui * vi);
