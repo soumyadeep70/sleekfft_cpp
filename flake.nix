@@ -13,24 +13,31 @@
       ];
       perSystem =
         { pkgs, ... }:
+        let 
+          commonPackages = with pkgs; [
+            gcc
+            gdb
+
+            cmake
+            ninja
+            gnumake
+
+            valgrind
+            perf
+
+            cppcheck
+            pkg-config
+            fftw
+            catch2_3
+          ];
+        in 
         {
+          packages.devtools = pkgs.buildEnv {
+            name = "devtools";
+            paths = commonPackages;
+          };
           devShells.default = pkgs.mkShell {
-            packages = with pkgs; [
-              gcc
-              gdb
-
-              cmake
-              ninja
-              gnumake
-
-              valgrind
-              perf
-
-              cppcheck
-              pkg-config
-              fftw
-              catch2_3
-            ];
+            packages = commonPackages;
           };
         };
     };
