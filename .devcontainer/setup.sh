@@ -26,4 +26,7 @@ log_format = "-"
 log_filter = "^$"
 EOF
 
+echo "Automatically allowing direnv..."
+direnv allow
+
 echo "Setup complete!"
