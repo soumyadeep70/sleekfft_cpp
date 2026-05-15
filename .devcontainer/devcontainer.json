@@ -7,15 +7,18 @@
       "extraNixConfig": "experimental-features = nix-command flakes"
     }
   },
-  "postCreateCommand": "nix profile add .#devtools",
 
   "customizations": {
     "vscode": {
       "extensions": [
+        "mkhl.direnv",
         "jnoortheen.nix-ide",
-        "ms-vscode.cpptools-extension-pack",
-        "llvm-vs-code-extensions.vscode-clangd"
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "llvm-vs-code-extensions.lldb-dap"
       ]
     }
-  }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh"
 }
