@@ -1,24 +1,61 @@
 {
-  "name": "SleekFFT",
-  "image": "mcr.microsoft.com/devcontainers/base:trixie",
-
-  "features": {
-    "ghcr.io/devcontainers/features/nix:latest": {
-      "extraNixConfig": "experimental-features = nix-command flakes"
-    }
+  "name": "sleekfft",
+  "build": {
+    "dockerfile": "Dockerfile"
   },
-
+  "capAdd": [
+    "SYS_PTRACE"
+  ],
+  "securityOpt": [
+    "seccomp=unconfined"
+  ],
+  "remoteEnv": {
+    "RUST_BACKTRACE": "1"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
-        "mkhl.direnv",
-        "jnoortheen.nix-ide",
         "ms-vscode.cmake-tools",
         "llvm-vs-code-extensions.vscode-clangd",
-        "llvm-vs-code-extensions.lldb-dap"
-      ]
+        "vadimcn.vscode-lldb",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "usernamehw.errorlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[cpp].editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "[c].editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+        "[rust].editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "[toml].editor.defaultFormatter": "tamasfe.even-better-toml",
+        "cmake.useCMakePresets": "always",
+        "cmake.configureOnOpen": true,
+        "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+        "cmake.debugConfig": {
+          "type": "lldb",
+          "stopOnEntry": false
+        },
+        "clangd.arguments": [
+          "--background-index",
+          "--clang-tidy",
+          "--completion-style=detailed"
+        ],
+        "rust-analyzer.check.command": "clippy",
+        "files.exclude": {
+          "**/.git": true,
+          "**/.DS_Store": true
+        },
+        "files.watcherExclude": {
+          "**/build/**": true,
+          "**/target/**": true
+        },
+        "search.exclude": {
+          "**/.git": true,
+          "**/build": true,
+          "**/target": true,
+          "**/compile_commands.json": true
+        }
+      }
     }
-  },
-
-  "postCreateCommand": "bash .devcontainer/setup.sh"
+  }
 }
