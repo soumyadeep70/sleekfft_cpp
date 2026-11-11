@@ -1,4 +1,5 @@
 .idea/
 .direnv/
+.cache/
 build/
 compile_commands.json   
