@@ -1,0 +1,22 @@
+[package]
+name = "sleekfft"
+description = "A high performance FFT library for power of 2 signal sizes"
+version = "0.2.0"
+edition = "2024"
+license = "MIT"
+build = "build.rs"
+
+[features]
+# Compile the C++ side with -march=native (non-portable binaries).
+native = []
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+# Links the system libfftw3 (installed in the devcontainer) instead of building FFTW from source.
+fftw = { version = "0.8", default-features = false, features = ["system"] }
+
+# Optimise test builds so the large-N tests and benchmark are usable without --release.
+[profile.test]
+opt-level = 3

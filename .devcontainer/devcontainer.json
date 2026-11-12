@@ -41,6 +41,9 @@
           "--completion-style=detailed"
         ],
         "rust-analyzer.check.command": "clippy",
+        "rust-analyzer.linkedProjects": [
+          "bindings/rust/Cargo.toml"
+        ],
         "files.exclude": {
           "**/.git": true,
           "**/.DS_Store": true
