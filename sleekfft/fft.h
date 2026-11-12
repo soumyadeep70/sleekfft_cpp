@@ -1,22 +1,22 @@
 #pragma once
-#include "fft_generic.h"
-#include "fft_sse2.h"
 #include "fft_avx.h"
 #include "fft_avx_fma.h"
+#include "fft_generic.h"
+#include "fft_sse2.h"
+#include <cstddef>
 
 class FFT {
-    using usize = unsigned long long;
     using f64 = double;
 
     f64 *wr, *wi;
-    usize size;
+    size_t size;
 
-    void (*_reserve_)(f64*&, f64*&, usize&, usize);
-    void (*_fft_)(const f64*, const f64*, f64*, f64*, usize);
-    void (*_ifft_)(const f64*, const f64*, f64*, f64*, usize);
-    void (*_cyclic_conv_)(const f64*, const f64*, f64*, f64*, usize);
+    void (*_reserve_)(f64*&, f64*&, size_t&, size_t);
+    void (*_fft_)(const f64*, const f64*, f64*, f64*, size_t);
+    void (*_ifft_)(const f64*, const f64*, f64*, f64*, size_t);
+    void (*_cyclic_conv_)(const f64*, const f64*, f64*, f64*, size_t);
 
-public:
+  public:
     FFT() : wr(nullptr), wi(nullptr), size(0) {
         __builtin_cpu_init();
         const bool AVX_SUPPORTED = __builtin_cpu_supports("avx");
@@ -47,23 +47,22 @@ public:
 
     // computes forward transform of input data
     // input in normal order, output in bit reversed order
-    void fft(f64 *real, f64 *imag, const usize k) {
+    void fft(f64* real, f64* imag, const size_t k) {
         _reserve_(wr, wi, size, k);
         _fft_(wr, wi, real, imag, k);
     }
 
     // computes backward transform of input data
     // input in bit reversed order, output in normal order
-    void ifft(f64 *real, f64 *imag, const usize k) {
+    void ifft(f64* real, f64* imag, const size_t k) {
         _reserve_(wr, wi, size, k);
         _ifft_(wr, wi, real, imag, k);
     }
 
     // perform cyclic convolution of the two real signals
     // and writes output in half of the input arrays
-    void cyclic_conv(f64 *real1, f64 *real2, const usize k) {
+    void cyclic_conv(f64* real1, f64* real2, const size_t k) {
         _reserve_(wr, wi, size, k);
         _cyclic_conv_(wr, wi, real1, real2, k);
     }
-
 };

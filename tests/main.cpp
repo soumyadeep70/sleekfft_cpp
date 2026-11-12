@@ -1,16 +1,14 @@
-#include <chrono>
-#include <iostream>
-#include <random>
-#include <memory>
-
 #include "fft.h"
 #include "fftw3.h"
+#include <chrono>
+#include <random>
 
 void test(const int N) {
     const int k = __builtin_ctz(N);
 
     static std::uniform_real_distribution<> dist(1, 10000);
-    static std::default_random_engine re(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    static std::default_random_engine re(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count());
 
     std::vector<fftw_complex> a(N);
     std::vector<double> ar(N), ai(N);
@@ -57,6 +55,7 @@ void test(const int N) {
 }
 
 int main() {
-    for (int i = 1; i <= 25; ++i) test(1 << i);
+    for (int i = 1; i <= 25; ++i)
+        test(1 << i);
     return 0;
 }
