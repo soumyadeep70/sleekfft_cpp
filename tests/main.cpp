@@ -1,7 +1,7 @@
-#include "fft.h"
-#include "fftw3.h"
 #include <chrono>
+#include <fftw3.h>
 #include <random>
+#include <sleekfft/fft.h>
 
 void test(const int N) {
     const int k = __builtin_ctz(N);
