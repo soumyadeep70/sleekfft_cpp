@@ -9,6 +9,8 @@ RUN apt-get update \
         clangd \
         clang-format \
         clang-tidy \
+        libclang-rt-dev \
+        llvm \
         lldb \
         cmake \
         ninja-build \
