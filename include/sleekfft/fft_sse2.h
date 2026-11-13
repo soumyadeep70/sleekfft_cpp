@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdlib>
 #include <immintrin.h>
 
 namespace FFT_SSE2 {
@@ -15,13 +16,15 @@ using f64x2 = f64 __attribute__((vector_size(16)));
 constexpr f64 PI = 3.141592653589793238462;
 
 [[gnu::target("sse2")]]
-inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
+inline void plan(f64*& wr, f64*& wi, size_t& size, const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (size >= m)
         return;
     size = m;
-    wr = static_cast<f64*>(_mm_malloc(m * sizeof(f64), 16));
-    wi = static_cast<f64*>(_mm_malloc(m * sizeof(f64), 16));
+    std::free(wr);
+    std::free(wi);
+    wr = static_cast<f64*>(std::aligned_alloc(16, std::max(16UL, m * sizeof(f64))));
+    wi = static_cast<f64*>(std::aligned_alloc(16, std::max(16UL, m * sizeof(f64))));
     const f64 arg = -PI / static_cast<f64>(m);
     wr[0] = 1.0, wi[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -34,6 +37,12 @@ inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
         wr[i] = wr[p] * wr[q] - wi[p] * wi[q];
         wi[i] = wr[p] * wi[q] + wi[p] * wr[q];
     }
+}
+
+[[gnu::target("sse2")]]
+inline void destroy(f64*& wr, f64*& wi) {
+    std::free(wr);
+    std::free(wi);
 }
 
 [[gnu::target("sse2")]]

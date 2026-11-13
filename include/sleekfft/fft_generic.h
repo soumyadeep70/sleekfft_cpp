@@ -6,19 +6,22 @@
 #pragma once
 
 #include <cmath>
+#include <cstdlib>
 
 namespace FFT_GENERIC {
 using f64 = double;
 
 constexpr f64 PI = 3.141592653589793238462;
 
-inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
+inline void plan(f64*& wr, f64*& wi, size_t& size, const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (size >= m)
         return;
     size = m;
-    wr = static_cast<f64*>(malloc(m * sizeof(f64)));
-    wi = static_cast<f64*>(malloc(m * sizeof(f64)));
+    std::free(wr);
+    std::free(wi);
+    wr = static_cast<f64*>(std::malloc(m * sizeof(f64)));
+    wi = static_cast<f64*>(std::malloc(m * sizeof(f64)));
     const f64 arg = -PI / static_cast<f64>(m);
     wr[0] = 1.0, wi[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -31,6 +34,11 @@ inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
         wr[i] = wr[p] * wr[q] - wi[p] * wi[q];
         wi[i] = wr[p] * wi[q] + wi[p] * wr[q];
     }
+}
+
+inline void destroy(f64*& wr, f64*& wi) {
+    std::free(wr);
+    std::free(wi);
 }
 
 inline void fft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) {

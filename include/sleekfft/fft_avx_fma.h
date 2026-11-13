@@ -15,13 +15,15 @@ using f64x4 = f64 __attribute__((vector_size(32)));
 constexpr f64 PI = 3.141592653589793238462;
 
 [[gnu::target("avx,fma")]]
-inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
+inline void plan(f64*& wr, f64*& wi, size_t& size, const size_t k) {
     const size_t m = 1ULL << (k - 1);
     if (size >= m)
         return;
     size = m;
-    wr = static_cast<f64*>(_mm_malloc(m * sizeof(f64), 32));
-    wi = static_cast<f64*>(_mm_malloc(m * sizeof(f64), 32));
+    std::free(wr);
+    std::free(wi);
+    wr = static_cast<f64*>(std::aligned_alloc(32, std::max(32UL, m * sizeof(f64))));
+    wi = static_cast<f64*>(std::aligned_alloc(32, std::max(32UL, m * sizeof(f64))));
     const f64 arg = -PI / static_cast<f64>(m);
     wr[0] = 1.0, wi[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
@@ -34,6 +36,12 @@ inline void reserve(f64*& wr, f64*& wi, size_t& size, const size_t k) {
         wr[i] = std::fma(wr[p], wr[q], -wi[p] * wi[q]);
         wi[i] = std::fma(wr[p], wi[q], wi[p] * wr[q]);
     }
+}
+
+[[gnu::target("avx,fma")]]
+inline void destroy(f64*& wr, f64*& wi) {
+    std::free(wr);
+    std::free(wi);
 }
 
 [[gnu::target("avx,fma")]]
