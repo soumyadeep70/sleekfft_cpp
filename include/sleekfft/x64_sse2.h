@@ -1,52 +1,45 @@
-/**
- * Author: Soumyadeep Dash
- * Last Edited: 09/08/24
- */
+#ifndef SLEEKFFT_X64_SSE2_H
+#define SLEEKFFT_X64_SSE2_H
 
-#pragma once
+#if defined(__x86_64__) || defined(_M_X64)
 
-#include <cmath>
-#include <cstdlib>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "common.h"
 #include <immintrin.h>
+#include <math.h>
+#include <stdlib.h>
 
-namespace FFT_SSE2 {
-using f64 = double;
-using f64x2 = f64 __attribute__((vector_size(16)));
-
-constexpr f64 PI = 3.141592653589793238462;
+typedef f64 __attribute__((vector_size(16))) f64x2;
 
 [[gnu::target("sse2")]]
-inline void plan(f64*& wr, f64*& wi, size_t& size, const size_t k) {
+void x64_sse2_reserve_twiddles(twiddle_table* table, const size_t k) {
     const size_t m = 1ULL << (k - 1);
-    if (size >= m)
+    if (table->size >= m)
         return;
-    size = m;
-    std::free(wr);
-    std::free(wi);
-    wr = static_cast<f64*>(std::aligned_alloc(16, std::max(16UL, m * sizeof(f64))));
-    wi = static_cast<f64*>(std::aligned_alloc(16, std::max(16UL, m * sizeof(f64))));
-    const f64 arg = -PI / static_cast<f64>(m);
-    wr[0] = 1.0, wi[0] = 0.0;
+    table->size = m;
+    free(table->wr);
+    free(table->wi);
+    table->wr = (f64*)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
+    table->wi = (f64*)aligned_alloc(16, m <= 2 ? 16UL : m * sizeof(f64));
+    const f64 arg = -PI / (f64)m;
+    (table->wr)[0] = 1.0, (table->wi)[0] = 0.0;
     for (size_t i = 1, j = m >> 1; j; i <<= 1, j >>= 1) {
-        const f64 theta = arg * static_cast<f64>(j);
-        wr[i] = std::cos(theta);
-        wi[i] = std::sin(theta);
+        const f64 theta = arg * (f64)j;
+        (table->wr)[i] = cos(theta);
+        (table->wi)[i] = sin(theta);
     }
     for (size_t i = 1; i < m; ++i) {
         const size_t p = i & (i - 1), q = 1ULL << __builtin_ctzll(i);
-        wr[i] = wr[p] * wr[q] - wi[p] * wi[q];
-        wi[i] = wr[p] * wi[q] + wi[p] * wr[q];
+        (table->wr)[i] = (table->wr)[p] * (table->wr)[q] - (table->wi)[p] * (table->wi)[q];
+        (table->wi)[i] = (table->wr)[p] * (table->wi)[q] + (table->wi)[p] * (table->wr)[q];
     }
 }
 
 [[gnu::target("sse2")]]
-inline void destroy(f64*& wr, f64*& wi) {
-    std::free(wr);
-    std::free(wi);
-}
-
-[[gnu::target("sse2")]]
-inline void fft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) {
+void x64_sse2_forward_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -88,8 +81,8 @@ inline void fft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) 
             _mm_storeu_pd(xi + i3, y2i - y3i);
         }
         for (size_t h = 1; h < u; ++h) {
-            const f64x2 w1r = _mm_set1_pd(wr[h << 1]), w1i = _mm_set1_pd(wi[h << 1]);
-            const f64x2 w2r = _mm_set1_pd(wr[h]), w2i = _mm_set1_pd(wi[h]);
+            const f64x2 w1r = _mm_set1_pd(table->wr[h << 1]), w1i = _mm_set1_pd(table->wi[h << 1]);
+            const f64x2 w2r = _mm_set1_pd(table->wr[h]), w2i = _mm_set1_pd(table->wi[h]);
             const f64x2 w3r = w1r * w2r - w1i * w2i, w3i = w1r * w2i + w1i * w2r;
 
             for (size_t i0 = h * 4 * v, i1 = i0 + v, i2 = i1 + v, i3 = i2 + v, ie = i1; i0 < ie;
@@ -121,7 +114,8 @@ inline void fft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) 
         }
     }
     for (size_t h = 0, u = 1ULL << (k - 2); h < u; ++h) {
-        const f64 w1r = wr[h << 1], w1i = wi[h << 1], w2r = wr[h], w2i = wi[h];
+        const f64 w1r = table->wr[h << 1], w1i = table->wi[h << 1], w2r = table->wr[h],
+                  w2i = table->wi[h];
         const f64 w3r = w1r * w2r - w1i * w2i, w3i = w1r * w2i + w1i * w2r;
 
         size_t i0 = h << 2, i1 = i0 + 1, i2 = i1 + 1, i3 = i2 + 1;
@@ -143,7 +137,7 @@ inline void fft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) 
 }
 
 [[gnu::target("sse2")]]
-inline void ifft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) {
+void x64_sse2_inverse_transform(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
     if (k == 1) {
         const f64 ur = xr[0], vr = xr[1];
         const f64 ui = xi[0], vi = xi[1];
@@ -152,7 +146,8 @@ inline void ifft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k)
         return;
     }
     for (size_t h = 0, u = 1ULL << (k - 2); h < u; ++h) {
-        const f64 w1r = wr[h << 1], w1i = -wi[h << 1], w2r = wr[h], w2i = -wi[h];
+        const f64 w1r = table->wr[h << 1], w1i = -table->wi[h << 1], w2r = table->wr[h],
+                  w2i = -table->wi[h];
         const f64 w3r = w1r * w2r - w1i * w2i, w3i = w1r * w2i + w1i * w2r;
 
         size_t i0 = h << 2, i1 = i0 + 1, i2 = i1 + 1, i3 = i2 + 1;
@@ -194,8 +189,8 @@ inline void ifft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k)
             _mm_storeu_pd(xi + i3, y1i - y3i);
         }
         for (size_t h = 1; h < u; ++h) {
-            const f64x2 w1r = _mm_set1_pd(wr[h << 1]), w1i = _mm_set1_pd(-wi[h << 1]);
-            const f64x2 w2r = _mm_set1_pd(wr[h]), w2i = _mm_set1_pd(-wi[h]);
+            const f64x2 w1r = _mm_set1_pd(table->wr[h << 1]), w1i = _mm_set1_pd(-table->wi[h << 1]);
+            const f64x2 w2r = _mm_set1_pd(table->wr[h]), w2i = _mm_set1_pd(-table->wi[h]);
             const f64x2 w3r = w1r * w2r - w1i * w2i, w3i = w1r * w2i + w1i * w2r;
 
             for (size_t i0 = h * 4 * v, i1 = i0 + v, i2 = i1 + v, i3 = i2 + v, ie = i1; i0 < ie;
@@ -240,15 +235,15 @@ inline void ifft(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k)
 }
 
 [[gnu::target("sse2")]]
-inline void cyclic_conv(const f64* wr, const f64* wi, f64* xr, f64* xi, const size_t k) {
+void x64_sse2_cyclic_conv(const twiddle_table* table, f64* xr, f64* xi, const size_t k) {
     const size_t m = 1ULL << k;
-    fft(wr, wi, xr, xi, k);
+    x64_sse2_forward_transform(table, xr, xi, k);
     xi[0] = 4 * xr[0] * xi[0];
     xi[1] = 4 * xr[1] * xi[1];
     xr[0] = 0, xr[1] = 0;
     for (size_t i = 2; i < m; i <<= 1) {
         for (size_t p = i, pe = i << 1; p < pe; p += 2) {
-            const size_t q = p xor (i - 1);
+            const size_t q = p ^ (i - 1);
             const f64 ur = xr[p] - xr[q], ui = xi[p] + xi[q];
             const f64 vr = xr[p] + xr[q], vi = xi[p] - xi[q];
             xr[p] = ur * vr - ui * vi;
@@ -257,16 +252,22 @@ inline void cyclic_conv(const f64* wr, const f64* wi, f64* xr, f64* xi, const si
             xi[q] = xi[p];
         }
     }
-    const f64 fc = 0.25 / static_cast<f64>(m);
+    const f64 fc = 0.25 / (f64)m;
     for (size_t i = 0, j = 0; i < m; i += 2, ++j) {
         const f64 ar = xr[i] + xr[i | 1], ai = xi[i] + xi[i | 1];
         const f64 br = xr[i] - xr[i | 1], bi = xi[i] - xi[i | 1];
-        const f64 cr = br * wr[j] + bi * wi[j];
-        const f64 ci = bi * wr[j] - br * wi[j];
+        const f64 cr = br * table->wr[j] + bi * table->wi[j];
+        const f64 ci = bi * table->wr[j] - br * table->wi[j];
         xr[j] = (cr + ai) * fc;
         xi[j] = (ci - ar) * fc;
     }
-    ifft(wr, wi, xr, xi, k - 1);
+    x64_sse2_inverse_transform(table, xr, xi, k - 1);
 }
 
-}; // namespace FFT_SSE2
+#ifdef __cplusplus
+}
+#endif
+
+#endif // defined(__x86_64__) || defined(_M_X64)
+
+#endif // SLEEKFFT_X64_SSE2_H

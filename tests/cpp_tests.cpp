@@ -26,8 +26,8 @@ void test(const int N) {
 
     const auto t2 = std::chrono::high_resolution_clock::now();
 
-    FFT fft;
-    fft.fft(ar.data(), ai.data(), k);
+    Sleekfft fft;
+    fft.forward_transform(ar.data(), ai.data(), k);
     for (int i = 1, j = 0; i < N; i++) {
         int bit = N >> 1;
         for (; j & bit; bit >>= 1)
